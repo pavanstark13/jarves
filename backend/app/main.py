@@ -12,6 +12,7 @@ from app.api.routes import (
     analytics,
     backtest,
     auto_trade,
+    ai_insights,
 )
 from app.core.scanner.scheduler import start_scheduler, stop_scheduler
 
@@ -46,6 +47,7 @@ app.include_router(journal.router,     prefix="/journal",     tags=["Journal"])
 app.include_router(analytics.router,   prefix="/analytics",   tags=["Analytics"])
 app.include_router(backtest.router,    prefix="/backtest",    tags=["Backtest"])
 app.include_router(auto_trade.router,  prefix="/auto-trade",  tags=["Auto Trade"])
+app.include_router(ai_insights.router,  prefix="/ai-insights",  tags=["AI Insights"])
 
 
 @app.get("/health")
