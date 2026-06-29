@@ -407,8 +407,8 @@ function SetupQualityChart({ trades }: { trades: any[] }) {
       <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', color: '#7070a0', textTransform: 'uppercase', marginBottom: '16px' }}>Setup Quality vs Results</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         {data.map(d => (
-          <div key={d.label} style={{ background: '#10102a', borderRadius: '10px', padding: '16px', borderLeft: `3px solid ${d.color}` }}>
-            <div style={{ fontSize: '10px', color: '#7070a0', letterSpacing: '1px', marginBottom: '8px' }}>{d.label}</div>
+          <div key={d.name} style={{ background: '#10102a', borderRadius: '10px', padding: '16px', borderLeft: `3px solid ${d.color}` }}>
+            <div style={{ fontSize: '10px', color: '#7070a0', letterSpacing: '1px', marginBottom: '8px' }}>{d.name}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
                 <div style={{ fontSize: '26px', fontWeight: 700, color: d.color, fontFamily: 'monospace' }}>{d.wr}%</div>

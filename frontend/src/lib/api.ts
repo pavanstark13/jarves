@@ -74,6 +74,7 @@ export interface BacktestRun {
 }
 
 export interface BacktestRunDetail extends BacktestRun {
+  initial_balance: number;
   wins: number; losses: number; max_drawdown_pct: number; expectancy_r: number;
   equity_curve: { timestamp: string; equity: number }[];
   per_symbol?: Record<string, BacktestRun>;
