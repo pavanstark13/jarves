@@ -71,6 +71,12 @@ class AnalyticsService:
                     "win_rate": round(sess_wins / len(sess_entries), 4),
                 }
 
+        # Direction breakdown
+        long_entries  = [e for e in entries if e.direction == "LONG"]
+        short_entries = [e for e in entries if e.direction == "SHORT"]
+        long_pnl  = sum(e.pnl for e in long_entries  if e.pnl is not None)
+        short_pnl = sum(e.pnl for e in short_entries if e.pnl is not None)
+
         return {
             "total_trades": total,
             "winning_trades": len(wins),
@@ -82,10 +88,16 @@ class AnalyticsService:
             "gross_profit": round(gross_profit, 2),
             "gross_loss": round(gross_loss, 2),
             "net_pnl": round(gross_profit - gross_loss, 2),
+            "total_pnl": round(gross_profit - gross_loss, 2),
             "max_drawdown": round(max_drawdown, 2),
             "max_drawdown_pct": round(max_drawdown_pct, 4),
             "r_multiples": [round(r, 3) for r in r_multiples],
+            "session_stats": session_stats,
             "session_performance": session_stats,
+            "long_trades": len(long_entries),
+            "short_trades": len(short_entries),
+            "long_pnl": round(long_pnl, 2),
+            "short_pnl": round(short_pnl, 2),
         }
 
     def _compute_max_drawdown(self, pnl_series: list[float]) -> tuple[float, float]:

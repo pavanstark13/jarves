@@ -1,63 +1,80 @@
+'use client';
+import { useEffect, useState } from 'react';
 import { StatsGrid } from '@/components/analytics/StatsGrid';
 import { PerformanceCharts } from '@/components/analytics/PerformanceCharts';
 import { SessionHeatmap } from '@/components/analytics/SessionHeatmap';
 import { PerformanceStats } from '@/types/trade';
+import { api } from '@/lib/api';
 
-const MOCK_STATS: PerformanceStats = {
-  total_trades: 39,
-  win_rate: 68.4,
-  profit_factor: 2.14,
-  expectancy: 0.82,
-  max_drawdown: 3.1,
-  avg_r: 1.34,
-  avg_r_multiple: 1.34,
-  best_session: 'London',
-  worst_session: 'Asia',
-  total_pnl: 647.00,
-  avg_confidence: 79.2,
-  equity_curve: [
-    { date: '2026-06-01', equity: 10000 },
-    { date: '2026-06-05', equity: 10184 },
-    { date: '2026-06-08', equity: 10095 },
-    { date: '2026-06-12', equity: 10312 },
-    { date: '2026-06-15', equity: 10189 },
-    { date: '2026-06-18', equity: 10445 },
-    { date: '2026-06-22', equity: 10380 },
-    { date: '2026-06-25', equity: 10520 },
-    { date: '2026-06-29', equity: 10647 },
-  ],
-  monthly_returns: [
-    { month: 'Feb', return: 2.1 },
-    { month: 'Mar', return: -0.8 },
-    { month: 'Apr', return: 3.4 },
-    { month: 'May', return: 1.9 },
-    { month: 'Jun', return: 6.47 },
-  ],
-  win_loss_distribution: [
-    { label: 'Week 1', wins: 4, losses: 2 },
-    { label: 'Week 2', wins: 6, losses: 1 },
-    { label: 'Week 3', wins: 3, losses: 3 },
-    { label: 'Week 4', wins: 5, losses: 2 },
-    { label: 'Week 5', wins: 9, losses: 4 },
-  ],
-  session_performance: [
-    { session: 'London', trades: 18, win_rate: 72.2, avg_r: 1.41 },
-    { session: 'New York', trades: 14, win_rate: 64.3, avg_r: 1.18 },
-    { session: 'Overlap', trades: 5, win_rate: 80.0, avg_r: 1.87 },
-    { session: 'Asia', trades: 2, win_rate: 50.0, avg_r: 0.42 },
-  ],
+function toPerformanceStats(d: Record<string, unknown>): PerformanceStats {
+  const sessions = (d.session_stats ?? {}) as Record<string, { total: number; win_rate: number }>;
+  const SESSION_LABELS: Record<string, string> = { LONDON: 'London', NEW_YORK: 'New York', OVERLAP: 'Overlap', ASIA: 'Asia', KILL_ZONE: 'Kill Zone' };
+  const session_performance = Object.entries(sessions).map(([k, v]) => ({
+    session: SESSION_LABELS[k] ?? k,
+    trades: v.total,
+    win_rate: Math.round(v.win_rate * 100 * 10) / 10,
+    avg_r: 0,
+  }));
+  const bestSess = session_performance.sort((a, b) => b.win_rate - a.win_rate)[0]?.session ?? '';
+  const worstSess = session_performance[session_performance.length - 1]?.session ?? '';
+
+  return {
+    total_trades: Number(d.total_trades ?? 0),
+    win_rate: Math.round(Number(d.win_rate ?? 0) * 1000) / 10,
+    profit_factor: Number(d.profit_factor ?? 0),
+    expectancy: Number(d.expectancy_r ?? 0),
+    max_drawdown: Number(d.max_drawdown_pct ?? 0),
+    avg_r: Number(d.expectancy_r ?? 0),
+    avg_r_multiple: Number(d.expectancy_r ?? 0),
+    best_session: bestSess,
+    worst_session: worstSess,
+    total_pnl: Number(d.total_pnl ?? 0),
+    avg_confidence: 0,
+    equity_curve: [],
+    monthly_returns: [],
+    win_loss_distribution: [],
+    session_performance,
+  };
+}
+
+const EMPTY: PerformanceStats = {
+  total_trades: 0, win_rate: 0, profit_factor: 0, expectancy: 0,
+  max_drawdown: 0, avg_r: 0, avg_r_multiple: 0, best_session: '', worst_session: '',
+  total_pnl: 0, avg_confidence: 0, equity_curve: [], monthly_returns: [],
+  win_loss_distribution: [], session_performance: [],
 };
 
 export default function AnalyticsPage() {
+  const [stats, setStats] = useState<PerformanceStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getAnalyticsSummary()
+      .then((d) => setStats(toPerformanceStats(d as Record<string, unknown>)))
+      .catch(() => setStats(EMPTY))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-text-primary">Performance Analytics</h1>
-        <p className="text-text-muted text-sm mt-0.5">Measure more than profit</p>
+        <p className="text-text-muted text-sm mt-0.5">Real data from your trade journal</p>
       </div>
-      <StatsGrid stats={MOCK_STATS} />
-      <PerformanceCharts stats={MOCK_STATS} />
-      <SessionHeatmap stats={MOCK_STATS} />
+      {loading ? (
+        <div style={{ color: '#5a5a7a', padding: '40px', textAlign: 'center' }}>Loading trade data…</div>
+      ) : (stats?.total_trades ?? 0) === 0 ? (
+        <div style={{ background: '#0d0d22', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '60px', textAlign: 'center', color: '#5a5a7a' }}>
+          <div style={{ fontSize: '16px', marginBottom: '8px' }}>No closed trades yet</div>
+          <div style={{ fontSize: '12px' }}>Analytics will appear once trades are recorded in your journal.</div>
+        </div>
+      ) : (
+        <>
+          <StatsGrid stats={stats!} />
+          <PerformanceCharts stats={stats!} />
+          <SessionHeatmap stats={stats!} />
+        </>
+      )}
     </div>
   );
 }

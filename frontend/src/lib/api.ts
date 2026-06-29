@@ -52,6 +52,8 @@ export const api = {
       `/backtest/runs/${id}/trades?page=${page}${result ? `&result=${result}` : ''}`
     ),
 
+  getAnalyticsSummary: () => request<Record<string, unknown>>('/analytics/summary'),
+
   // Auto Trade
   getScannerStatus: () => request<ScannerStatus>('/auto-trade/status'),
   toggleScanner: (enabled: boolean) =>

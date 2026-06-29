@@ -21,6 +21,8 @@ export interface Trade {
   session: string;
   notes?: string;
   ai_explanation?: string;
+  result?: string;
+  created_at?: string;
 }
 
 export interface SessionPerf {

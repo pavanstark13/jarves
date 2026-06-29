@@ -1,55 +1,42 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 
-const label: React.CSSProperties = {
-  fontSize: '10px',
-  letterSpacing: '1.5px',
-  textTransform: 'uppercase' as const,
-  color: '#7070a0',
-  fontWeight: 500,
-};
-
-const bigNum: React.CSSProperties = {
-  fontSize: '24px',
-  fontWeight: 700,
-  color: '#f0f0ff',
-  fontFamily: 'monospace',
-};
-
-const metrics = [
-  { label: 'WIN RATE',         value: '66.67%',    sub: '3 trades',     color: '#f0f0ff' },
-  { label: 'PROFIT FACTOR',    value: '7.62',      sub: 'Strong',       color: '#f0f0ff' },
-  { label: 'RECOVERY FACTOR',  value: '6.62',      sub: 'Excellent',    color: '#f0f0ff' },
-  { label: 'EXPECTANCY',       value: '+$274.25',  sub: 'per trade',    color: '#00d4a0' },
-  { label: 'SHARPE',           value: '9.40',      sub: 'Excellent',    color: '#00e5cc', large: true },
-  { label: 'AVG HOLD',         value: '55m',       sub: '1.0 lots',     color: '#f0f0ff' },
-  { label: 'ACTIVE SINCE',     value: '4d 18h 36m',sub: 'since Jun 24', color: '#f0f0ff' },
-];
+const label: React.CSSProperties = { fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#7070a0', fontWeight: 500 };
 
 export function AnalyticsMatrix() {
-  return (
-    <div style={{
-      background: '#0d0d22',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: '12px',
-      padding: '16px 20px',
-    }}>
-      <div style={{ ...label, fontSize: '11px', color: '#f0f0ff', marginBottom: '16px' }}>Analytics Matrix</div>
+  const [d, setD] = useState<Record<string, unknown> | null>(null);
 
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+  useEffect(() => { api.getAnalyticsSummary().then(setD).catch(() => {}); }, []);
+
+  const n = (v: unknown, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
+  const total   = d?.total_trades ?? '—';
+  const winRate = d?.win_rate != null ? (Number(d.win_rate) * 100).toFixed(1) + '%' : '—';
+  const pf      = d?.profit_factor != null ? n(d.profit_factor) : '—';
+  const exp     = d?.expectancy_r != null ? (Number(d.expectancy_r) >= 0 ? '+' : '') + n(d.expectancy_r) + 'R' : '—';
+  const sharpe  = d?.sharpe_ratio != null ? n(d.sharpe_ratio) : '—';
+  const maxDD   = d?.max_drawdown_pct != null ? n(d.max_drawdown_pct) + '%' : '—';
+  const wins    = d?.winning_trades ?? '—';
+  const losses  = d?.losing_trades ?? '—';
+
+  const metrics = [
+    { label: 'WIN RATE',      value: winRate,         sub: `${total} trades`,          color: '#f0f0ff' },
+    { label: 'PROFIT FACTOR', value: pf,              sub: pf !== '—' && Number(pf) > 2 ? 'Strong' : 'Moderate', color: '#f0f0ff' },
+    { label: 'MAX DRAWDOWN',  value: maxDD,           sub: 'peak to trough',           color: '#ff4466' },
+    { label: 'EXPECTANCY',    value: exp,             sub: 'per trade',                color: '#00d4a0' },
+    { label: 'SHARPE',        value: sharpe,          sub: sharpe !== '—' && Number(sharpe) > 1 ? 'Good' : 'Low', color: '#00e5cc', large: true },
+    { label: 'WINS / LOSSES', value: `${wins} / ${losses}`, sub: 'closed trades',     color: '#f0f0ff' },
+    { label: 'BREAKEVEN',     value: String(d?.breakeven_trades ?? '—'), sub: 'trades', color: '#f0f0ff' },
+  ];
+
+  return (
+    <div style={{ background: '#0d0d22', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '16px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {metrics.map((m, i) => (
-          <div key={m.label} style={{ display: 'flex', alignItems: 'stretch' }}>
-            {i > 0 && (
-              <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)', margin: '0 16px', alignSelf: 'stretch' }} />
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-              <div style={label}>{m.label}</div>
-              <div style={{
-                ...bigNum,
-                color: m.color,
-                fontSize: m.large ? '32px' : '22px',
-              }}>{m.value}</div>
-              <div style={{ ...label, fontSize: '9px', color: '#4a4a6a' }}>{m.sub}</div>
-            </div>
+          <div key={m.label} style={{ padding: '12px 16px', borderRight: i < metrics.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', background: m.large ? 'rgba(0,229,204,0.04)' : 'transparent' }}>
+            <div style={label}>{m.label}</div>
+            <div style={{ fontSize: m.large ? '28px' : '22px', fontWeight: 700, color: m.color, fontFamily: 'monospace', marginTop: '6px' }}>{m.value}</div>
+            <div style={{ fontSize: '10px', color: '#5a5a7a', marginTop: '4px' }}>{m.sub}</div>
           </div>
         ))}
       </div>

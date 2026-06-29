@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, Zap, TrendingUp, TrendingDown, AlertTriangle, Target, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -8,24 +8,6 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 const BASE = '/api';
 
-// ── mock trade data seeded with realistic SMC trades ──────────────────────────
-const MOCK_TRADES = [
-  { symbol:'EURUSD', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:2.1,  pnl:210, setup_quality:82, exit_reason:'TP_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-03T08:15:00', exit_time:'2024-06-03T10:45:00' },
-  { symbol:'XAUUSD', direction:'SHORT', session:'NEW_YORK',  result:'LOSS', r_multiple:-1.0, pnl:-150,setup_quality:61, exit_reason:'SL_HIT',  strategy_tag:'SMC_FVG', entry_time:'2024-06-04T13:30:00', exit_time:'2024-06-04T14:10:00' },
-  { symbol:'GBPUSD', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:1.8,  pnl:180, setup_quality:79, exit_reason:'TP_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-05T07:45:00', exit_time:'2024-06-05T09:30:00' },
-  { symbol:'USDJPY', direction:'SHORT', session:'LONDON',   result:'WIN',  r_multiple:2.3,  pnl:230, setup_quality:88, exit_reason:'TP_HIT',  strategy_tag:'SMC_BOS', entry_time:'2024-06-06T08:00:00', exit_time:'2024-06-06T11:20:00' },
-  { symbol:'EURUSD', direction:'LONG',  session:'NEW_YORK',  result:'LOSS', r_multiple:-1.0, pnl:-100,setup_quality:55, exit_reason:'SL_HIT',  strategy_tag:'SMC_FVG', entry_time:'2024-06-07T14:00:00', exit_time:'2024-06-07T14:45:00' },
-  { symbol:'XAUUSD', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:3.1,  pnl:310, setup_quality:91, exit_reason:'TP_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-10T08:30:00', exit_time:'2024-06-10T12:00:00' },
-  { symbol:'BTCUSD', direction:'LONG',  session:'NEW_YORK',  result:'LOSS', r_multiple:-1.0, pnl:-200,setup_quality:58, exit_reason:'SL_HIT',  strategy_tag:'SMC_FVG', entry_time:'2024-06-11T13:15:00', exit_time:'2024-06-11T14:00:00' },
-  { symbol:'AUDUSD', direction:'SHORT', session:'ASIA',     result:'LOSS', r_multiple:-1.0, pnl:-75, setup_quality:52, exit_reason:'SL_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-12T02:00:00', exit_time:'2024-06-12T03:30:00' },
-  { symbol:'GBPUSD', direction:'SHORT', session:'LONDON',   result:'WIN',  r_multiple:2.0,  pnl:200, setup_quality:85, exit_reason:'TP_HIT',  strategy_tag:'SMC_BOS', entry_time:'2024-06-13T07:30:00', exit_time:'2024-06-13T10:45:00' },
-  { symbol:'EURUSD', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:1.9,  pnl:190, setup_quality:83, exit_reason:'TP_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-14T08:00:00', exit_time:'2024-06-14T10:30:00' },
-  { symbol:'USDCHF', direction:'SHORT', session:'LONDON',   result:'WIN',  r_multiple:1.7,  pnl:170, setup_quality:76, exit_reason:'TP_HIT',  strategy_tag:'SMC_FVG', entry_time:'2024-06-17T07:45:00', exit_time:'2024-06-17T09:15:00' },
-  { symbol:'XAUUSD', direction:'SHORT', session:'NEW_YORK',  result:'LOSS', r_multiple:-1.0, pnl:-150,setup_quality:63, exit_reason:'SL_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-18T13:00:00', exit_time:'2024-06-18T14:20:00' },
-  { symbol:'USDJPY', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:2.5,  pnl:250, setup_quality:90, exit_reason:'TP_HIT',  strategy_tag:'SMC_BOS', entry_time:'2024-06-19T08:15:00', exit_time:'2024-06-19T12:00:00' },
-  { symbol:'EURUSD', direction:'SHORT', session:'ASIA',     result:'LOSS', r_multiple:-1.0, pnl:-100,setup_quality:48, exit_reason:'SL_HIT',  strategy_tag:'SMC_FVG', entry_time:'2024-06-20T03:00:00', exit_time:'2024-06-20T04:15:00' },
-  { symbol:'GBPUSD', direction:'LONG',  session:'LONDON',   result:'WIN',  r_multiple:2.2,  pnl:220, setup_quality:86, exit_reason:'TP_HIT',  strategy_tag:'SMC_OB',  entry_time:'2024-06-21T07:30:00', exit_time:'2024-06-21T11:45:00' },
-];
 
 const CARD: React.CSSProperties = {
   background: '#0d0d22', border: '1px solid rgba(255,255,255,0.06)',
@@ -49,7 +31,11 @@ export default function AIInsightsPage() {
   const [strategy, setStrategy] = useState<any>(null);
   const [silent, setSilent] = useState<any>(null);
   const [error, setError] = useState('');
-  const [trades] = useState(MOCK_TRADES);
+  const [trades, setTrades] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/journal/trades').then(r => r.json()).then(data => setTrades(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
 
   const stats = computeStats(trades);
 
