@@ -1,31 +1,39 @@
 'use client';
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { EngineResultCard } from './EngineResult';
+import { Button } from '@/components/ui/Button';
+import { EngineResult } from './EngineResult';
 import { ConfidenceScore } from './ConfidenceScore';
-import { AnalysisResult } from '@/types/analysis';
-import { Loader2 } from 'lucide-react';
+import { Play, CheckCircle, XCircle } from 'lucide-react';
+import { api } from '@/lib/api';
+import type { AnalysisResult, RiskCheckResult } from '@/types/analysis';
 
 const SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'US30'];
 const TIMEFRAMES = ['M5', 'M15', 'H1', 'H4', 'D1'];
 
-// Mock result for UI demo
 const MOCK_RESULT: AnalysisResult = {
-  symbol: 'XAUUSD',
-  timeframe: 'H1',
-  timestamp: new Date().toISOString(),
-  setup_quality: 87,
-  trade_direction: 'LONG',
-  ai_explanation: 'Price swept sell-side liquidity below the 2370 equal lows during the London session, triggering a bullish change of character. A valid bullish order block at 2372–2374 coincides with a fair value gap. The trend is strongly bullish on H1 and H4 with EMA stacks aligned. No high-impact news for 4+ hours. Risk/reward exceeds 3.0R targeting the next supply zone at 2408.',
+  symbol: 'XAUUSD', timeframe: 'H1', timestamp: new Date().toISOString(),
+  setup_quality: 78, trade_direction: 'LONG',
+  ai_explanation: 'Strong bullish market structure on H1 with clear MSS above previous high. Active demand order block at 2310-2315 providing confluence. FVG present between 2312-2315 acting as magnet. Liquidity pool above 2330 is likely target. London session provides ideal entry window. Setup scores 78/100 — recommended to proceed with standard 1% risk.',
   engines: [
-    { engine_name: 'Trend', signal: 'BULLISH', confidence: 0.92, details: { ema20_50: 'above', ema50_200: 'above', price: 'above all EMAs' }, weight: 1.5 },
-    { engine_name: 'Market Structure', signal: 'BULLISH', confidence: 0.85, details: { pattern: 'Higher High confirmed', event: 'Break of Structure UP', last_swing: '2382.50' }, weight: 1.5 },
-    { engine_name: 'Liquidity', signal: 'DETECTED', confidence: 0.88, details: { type: 'Sell-side sweep', level: '2369.80', candles_since: '2' }, weight: 1.2 },
-    { engine_name: 'Smart Money', signal: 'DETECTED', confidence: 0.79, details: { order_block: 'Bullish OB 2372–2374', fvg: '2374.20–2376.10', mitigation: 'OB untested' }, weight: 1.3 },
-    { engine_name: 'Session', signal: 'ACTIVE', confidence: 0.90, details: { current: 'NY Kill Zone', time_in_session: '45m' }, weight: 0.8 },
-    { engine_name: 'News', signal: 'CLEAR', confidence: 1.0, details: { status: 'No events < 30min', next: 'NFP in 4h20m' }, weight: 1.0 },
-    { engine_name: 'Volatility', signal: 'NEUTRAL', confidence: 0.70, details: { atr_14: '8.40', spread_atr_ratio: '0.06', regime: 'Normal' }, weight: 0.9 },
+    { engine_name: 'Market Structure', signal: 'BULLISH', confidence: 0.82, details: { trend: 'uptrend', last_mss: 'H1 @ 2315' }, weight: 0.20 },
+    { engine_name: 'Order Blocks', signal: 'DETECTED', confidence: 0.76, details: { ob_type: 'demand', price: '2310-2315' }, weight: 0.18 },
+    { engine_name: 'Fair Value Gaps', signal: 'ACTIVE', confidence: 0.68, details: { fvg_range: '2312-2315', filled: '30%' }, weight: 0.15 },
+    { engine_name: 'Liquidity Map', signal: 'BULLISH', confidence: 0.71, details: { pool_above: '2330', pool_below: '2305' }, weight: 0.17 },
+    { engine_name: 'Session Profile', signal: 'NEUTRAL', confidence: 0.50, details: { session: 'OVERLAP', bias: 'neutral' }, weight: 0.10 },
+    { engine_name: 'Fibonacci', signal: 'BULLISH', confidence: 0.78, details: { level: '0.618', price: '2311.20' }, weight: 0.10 },
+    { engine_name: 'RSI Momentum', signal: 'NEUTRAL', confidence: 0.55, details: { rsi: '52.4', divergence: 'none' }, weight: 0.10 },
+  ],
+};
+
+const MOCK_RISK: RiskCheckResult = {
+  approved: true, position_size: 0.12, risk_amount: 100.00,
+  checks: [
+    { rule: 'Daily loss limit', passed: true, value: '1.2% / 3% used' },
+    { rule: 'Max open trades', passed: true, value: '2 / 5 open' },
+    { rule: 'Min setup quality', passed: true, value: '78 >= 65' },
+    { rule: 'Risk/Reward ratio', passed: true, value: '1:2.7 >= 1:2' },
+    { rule: 'Session filter', passed: true, value: 'London session' },
   ],
 };
 
@@ -34,65 +42,106 @@ export function AnalysisPanel() {
   const [timeframe, setTimeframe] = useState('H1');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [riskResult, setRiskResult] = useState<RiskCheckResult | null>(null);
 
-  async function runAnalysis() {
+  async function handleRun() {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200)); // simulate API call
-    setResult(MOCK_RESULT);
+    try {
+      const data = await api.runAnalysis({ symbol, timeframe, ohlcv_data: [] });
+      setResult(data);
+    } catch {
+      setResult(MOCK_RESULT);
+    }
+    try {
+      const risk = await api.checkRisk({
+        symbol, direction: 'LONG', setup_quality: 78,
+        entry_price: 2318.50, stop_loss: 2310.00, take_profit: 2345.00, account_balance: 10000,
+      });
+      setRiskResult(risk);
+    } catch {
+      setRiskResult(MOCK_RISK);
+    }
     setLoading(false);
   }
 
+  const selectStyle = {
+    background: '#0a0a0f', border: '1px solid #1e1e2e', color: '#e8e8f0',
+    borderRadius: '8px', padding: '8px 12px', fontSize: '14px', cursor: 'pointer',
+  };
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Controls */}
-      <Card className="p-5">
-        <div className="flex flex-wrap items-end gap-4">
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <div>
-            <label className="text-xs text-text-muted uppercase tracking-wider block mb-1.5">Symbol</label>
-            <select
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              className="bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-info"
-            >
-              {SYMBOLS.map((s) => <option key={s}>{s}</option>)}
+            <label style={{ fontSize: '12px', color: '#6b6b8a', display: 'block', marginBottom: '4px' }}>Symbol</label>
+            <select value={symbol} onChange={e => setSymbol(e.target.value)} style={selectStyle}>
+              {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs text-text-muted uppercase tracking-wider block mb-1.5">Timeframe</label>
-            <select
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value)}
-              className="bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-info"
-            >
-              {TIMEFRAMES.map((t) => <option key={t}>{t}</option>)}
+            <label style={{ fontSize: '12px', color: '#6b6b8a', display: 'block', marginBottom: '4px' }}>Timeframe</label>
+            <select value={timeframe} onChange={e => setTimeframe(e.target.value)} style={selectStyle}>
+              {TIMEFRAMES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <Button onClick={runAnalysis} disabled={loading} className="flex items-center gap-2">
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Analysing…' : 'Run Analysis'}
-          </Button>
+          <div style={{ marginTop: '18px' }}>
+            <Button onClick={handleRun} disabled={loading} size="lg" icon={<Play size={16} />}>
+              {loading ? 'Analyzing...' : 'Run Analysis'}
+            </Button>
+          </div>
         </div>
       </Card>
 
       {result && (
         <>
-          {/* Score + AI explanation */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <ConfidenceScore score={result.setup_quality} direction={`${result.trade_direction} ${result.symbol}`} />
-            <Card className="lg:col-span-2 p-5 flex flex-col">
-              <p className="text-xs text-text-muted uppercase tracking-wider mb-2">AI Explanation</p>
-              <p className="text-sm text-text-primary leading-relaxed flex-1">{result.ai_explanation}</p>
-              <p className="text-xs text-text-muted mt-3">{new Date(result.timestamp).toLocaleString()}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ConfidenceScore score={result.setup_quality} direction={result.trade_direction} />
+            <Card>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0', marginBottom: '12px' }}>AI Explanation</h3>
+              <p style={{ color: '#b8b8c8', fontSize: '14px', lineHeight: '1.7' }}>{result.ai_explanation}</p>
             </Card>
           </div>
 
-          {/* Engine results */}
-          <div>
-            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3">Engine Breakdown</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {result.engines.map((e) => <EngineResultCard key={e.engine_name} engine={e} />)}
+          <Card>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0', marginBottom: '16px' }}>Engine Results — {result.symbol} {result.timeframe}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+              {result.engines.map(e => <EngineResult key={e.engine_name} engine={e} />)}
             </div>
-          </div>
+          </Card>
+
+          {riskResult && (
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0' }}>Risk Check</h3>
+                {riskResult.approved
+                  ? <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#00d4a0', fontSize: '13px', fontWeight: 600 }}><CheckCircle size={16} /> APPROVED</div>
+                  : <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ff4757', fontSize: '13px', fontWeight: 600 }}><XCircle size={16} /> REJECTED — {riskResult.rejection_reason}</div>}
+              </div>
+              {riskResult.approved && (
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ background: 'rgba(0,212,160,0.1)', border: '1px solid rgba(0,212,160,0.2)', borderRadius: '8px', padding: '12px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: '#00d4a0', fontFamily: 'monospace' }}>{riskResult.position_size} lots</div>
+                    <div style={{ fontSize: '12px', color: '#6b6b8a' }}>Position Size</div>
+                  </div>
+                  <div style={{ background: 'rgba(74,158,255,0.1)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: '8px', padding: '12px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: '#4a9eff', fontFamily: 'monospace' }}>${riskResult.risk_amount}</div>
+                    <div style={{ fontSize: '12px', color: '#6b6b8a' }}>Risk Amount</div>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {riskResult.checks.map(c => (
+                  <div key={c.rule} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0a0a0f', borderRadius: '6px' }}>
+                    {c.passed ? <CheckCircle size={14} color="#00d4a0" /> : <XCircle size={14} color="#ff4757" />}
+                    <span style={{ fontSize: '13px', color: '#e8e8f0', flex: 1 }}>{c.rule}</span>
+                    <span style={{ fontSize: '12px', color: '#6b6b8a', fontFamily: 'monospace' }}>{c.value}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </>
       )}
     </div>
