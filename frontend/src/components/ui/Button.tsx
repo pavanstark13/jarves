@@ -1,14 +1,11 @@
-interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
   icon?: React.ReactNode;
-  type?: 'button' | 'submit';
 }
 
-export function Button({ children, onClick, variant = 'primary', size = 'md', disabled, icon, type = 'button' }: ButtonProps) {
+export function Button({ children, onClick, variant = 'primary', size = 'md', disabled, icon, type = 'button', className, ...rest }: ButtonProps) {
   const styles = {
     primary: { background: '#4a9eff', color: '#fff', border: '1px solid #4a9eff' },
     secondary: { background: 'rgba(74,158,255,0.1)', color: '#4a9eff', border: '1px solid rgba(74,158,255,0.3)' },
