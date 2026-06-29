@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 
-    # Anthropic (for AI explanations)
-    ANTHROPIC_API_KEY: str = ""
+    # Google Gemini (for AI explanations — free tier at aistudio.google.com)
+    GOOGLE_API_KEY: str = ""
 
     # Market data — Twelve Data (https://twelvedata.com, free tier)
     TWELVE_DATA_API_KEY: str = ""

@@ -6,7 +6,7 @@ pydantic==2.9.2
 pydantic-settings==2.6.1
 alembic==1.14.0
 redis==5.2.0
-anthropic==0.40.0
+# google-generativeai — using REST API directly via httpx (no SDK needed)
 pandas==2.2.3
 numpy==2.1.3
 httpx==0.27.2
