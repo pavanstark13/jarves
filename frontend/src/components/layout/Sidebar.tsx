@@ -1,13 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Brain, BookOpen, BarChart3, Zap } from 'lucide-react';
+import { LayoutDashboard, Brain, BookOpen, BarChart3, Zap, FlaskConical, Bot } from 'lucide-react';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/analysis', label: 'Analysis', icon: Brain },
   { href: '/journal', label: 'Journal', icon: BookOpen },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/backtest', label: 'Backtest', icon: FlaskConical },
+  { href: '/auto-trade', label: 'Auto Trade', icon: Bot },
 ];
 
 export function Sidebar() {
