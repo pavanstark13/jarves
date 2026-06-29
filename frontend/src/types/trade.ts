@@ -23,15 +23,29 @@ export interface Trade {
   ai_explanation?: string;
 }
 
+export interface SessionPerf {
+  session: string;
+  trades: number;
+  win_rate: number;
+  avg_r: number;
+}
+
+export type TradeFormData = Partial<Trade>;
+
 export interface PerformanceStats {
   total_trades: number;
   win_rate: number;
   profit_factor: number;
   expectancy: number;
   max_drawdown: number;
+  avg_r: number;
   avg_r_multiple: number;
   best_session: string;
   worst_session: string;
   total_pnl: number;
   avg_confidence: number;
+  equity_curve: { date: string; equity: number }[];
+  monthly_returns: { month: string; return: number }[];
+  win_loss_distribution: { label: string; wins: number; losses: number }[];
+  session_performance: SessionPerf[];
 }

@@ -1,28 +1,28 @@
 import { Card } from './Card';
+import { cn } from '@/lib/utils';
 
 interface StatCardProps {
-  title: string;
+  label: string;
   value: string;
-  change: string;
-  changePct: string;
-  positive: boolean;
+  subValue?: string;
+  trend?: 'up' | 'down' | 'neutral';
   icon?: React.ReactNode;
 }
 
-export function StatCard({ title, value, change, changePct, positive, icon }: StatCardProps) {
+export function StatCard({ label, value, subValue, trend, icon }: StatCardProps) {
   return (
-    <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-        <span style={{ color: '#6b6b8a', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</span>
+    <Card className="p-5">
+      <div className="flex items-start justify-between mb-1">
+        <p className="text-xs text-text-muted uppercase tracking-wider">{label}</p>
         {icon}
       </div>
-      <div style={{ fontSize: '28px', fontWeight: 700, color: '#e8e8f0', marginBottom: '8px', fontFamily: 'monospace' }}>{value}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '12px', color: '#6b6b8a' }}>{change}</span>
-        {changePct && (
-          <span style={{ fontSize: '12px', fontWeight: 600, color: positive ? '#00d4a0' : '#ff4757' }}>{changePct}</span>
-        )}
-      </div>
+      <p className={cn(
+        'text-2xl font-bold font-mono',
+        trend === 'up' ? 'text-bull' : trend === 'down' ? 'text-bear' : 'text-text-primary',
+      )}>
+        {value}
+      </p>
+      {subValue && <p className="text-xs text-text-muted mt-1">{subValue}</p>}
     </Card>
   );
 }

@@ -29,8 +29,20 @@ export function TradeForm({ onSubmit, onCancel }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trade: Trade = {
-      ...form, id: Date.now().toString(),
-      status: 'OPEN', entry_time: new Date().toISOString(),
+      symbol: form.symbol ?? 'XAUUSD',
+      direction: form.direction ?? 'LONG',
+      entry_price: form.entry_price ?? 0,
+      stop_loss: form.stop_loss ?? 0,
+      take_profit: form.take_profit ?? 0,
+      position_size: form.position_size ?? 0.1,
+      session: form.session ?? 'LONDON',
+      setup_quality: form.setup_quality ?? 70,
+      confidence_score: form.confidence_score ?? 0.7,
+      trade_direction: form.direction ?? 'LONG',
+      notes: form.notes,
+      id: Date.now().toString(),
+      status: 'OPEN',
+      entry_time: new Date().toISOString(),
     };
     onSubmit(trade);
   }

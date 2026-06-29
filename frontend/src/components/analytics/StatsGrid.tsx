@@ -9,7 +9,7 @@ export function StatsGrid({ stats }: Props) {
     { label: 'Profit Factor', value: stats.profit_factor.toFixed(2), color: '#4a9eff', desc: 'Gross profit / loss' },
     { label: 'Expectancy', value: `${stats.expectancy.toFixed(2)}R`, color: '#4a9eff', desc: 'Per trade avg' },
     { label: 'Max Drawdown', value: `${stats.max_drawdown.toFixed(1)}%`, color: '#ff4757', desc: 'Peak to trough' },
-    { label: 'Avg R Multiple', value: `${stats.avg_r.toFixed(2)}R`, color: '#00d4a0', desc: 'Average winner' },
+    { label: 'Avg R Multiple', value: `${(stats.avg_r ?? stats.avg_r_multiple).toFixed(2)}R`, color: '#00d4a0', desc: 'Average winner' },
     { label: 'Total P&L', value: `$${stats.total_pnl.toFixed(0)}`, color: '#00d4a0', desc: 'All time' },
     { label: 'Best Session', value: stats.best_session, color: '#4a9eff', desc: 'By win rate' },
     { label: 'Total Trades', value: String(stats.total_trades), color: '#e8e8f0', desc: 'Recorded' },
