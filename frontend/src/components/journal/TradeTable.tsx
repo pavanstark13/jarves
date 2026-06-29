@@ -4,9 +4,16 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Trade } from '@/types/trade';
 
-interface Props { trades: Trade[]; }
+const MOCK_TRADES: Trade[] = [
+  { id: '1', symbol: 'XAUUSD', direction: 'LONG', entry_price: 2341.20, stop_loss: 2329.00, take_profit: 2365.00, position_size: 0.05, status: 'CLOSED', entry_time: '2026-06-27T09:15:00Z', exit_time: '2026-06-27T14:30:00Z', exit_price: 2363.50, pnl: 111.50, r_multiple: 1.85, setup_quality: 82, confidence_score: 0.82, trade_direction: 'LONG', session: 'London' },
+  { id: '2', symbol: 'EURUSD', direction: 'SHORT', entry_price: 1.09120, stop_loss: 1.09380, take_profit: 1.08340, position_size: 0.10, status: 'CLOSED', entry_time: '2026-06-26T14:00:00Z', exit_time: '2026-06-26T16:45:00Z', exit_price: 1.08920, pnl: 200.00, r_multiple: 0.77, setup_quality: 71, confidence_score: 0.71, trade_direction: 'SHORT', session: 'NY' },
+  { id: '3', symbol: 'GBPUSD', direction: 'LONG', entry_price: 1.26840, stop_loss: 1.26480, take_profit: 1.27920, position_size: 0.08, status: 'CLOSED', entry_time: '2026-06-25T08:30:00Z', exit_time: '2026-06-25T13:00:00Z', exit_price: 1.26600, pnl: -192.00, r_multiple: -0.67, setup_quality: 68, confidence_score: 0.68, trade_direction: 'LONG', session: 'London' },
+  { id: '4', symbol: 'XAUUSD', direction: 'LONG', entry_price: 2374.50, stop_loss: 2362.00, take_profit: 2409.50, position_size: 0.05, status: 'OPEN', entry_time: '2026-06-29T10:30:00Z', pnl: 64.75, setup_quality: 87, confidence_score: 0.87, trade_direction: 'LONG', session: 'NY' },
+];
 
-export function TradeTable({ trades }: Props) {
+interface Props { trades?: Trade[]; }
+
+export function TradeTable({ trades = MOCK_TRADES }: Props) {
   const [filter, setFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
   const [symbolFilter, setSymbolFilter] = useState('ALL');
 
@@ -52,16 +59,16 @@ export function TradeTable({ trades }: Props) {
             {filtered.map(t => (
               <tr key={t.id} style={{ borderBottom: '1px solid #1e1e2e' }}>
                 <td style={{ padding: '12px 14px', fontWeight: 600, color: '#e8e8f0' }}>{t.symbol}</td>
-                <td style={{ padding: '12px 14px' }}><Badge variant={t.direction === 'LONG' ? 'green' : 'red'}>{t.direction}</Badge></td>
+                <td style={{ padding: '12px 14px' }}><Badge variant={t.direction === 'LONG' ? 'bull' : 'bear'}>{t.direction}</Badge></td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#e8e8f0' }}>{t.symbol === 'XAUUSD' || t.symbol === 'US30' ? t.entry_price.toFixed(2) : t.entry_price.toFixed(5)}</td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: t.exit_price ? '#e8e8f0' : '#6b6b8a' }}>{t.exit_price ? (t.symbol === 'XAUUSD' || t.symbol === 'US30' ? t.exit_price.toFixed(2) : t.exit_price.toFixed(5)) : '—'}</td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#ff4757' }}>{t.symbol === 'XAUUSD' || t.symbol === 'US30' ? t.stop_loss.toFixed(2) : t.stop_loss.toFixed(5)}</td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#00d4a0' }}>{t.symbol === 'XAUUSD' || t.symbol === 'US30' ? t.take_profit.toFixed(2) : t.take_profit.toFixed(5)}</td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#e8e8f0' }}>{t.position_size}</td>
                 <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 600, color: t.pnl !== undefined ? (t.pnl >= 0 ? '#00d4a0' : '#ff4757') : '#6b6b8a' }}>{t.pnl !== undefined ? `${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}` : '—'}</td>
-                <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: t.pnl_r !== undefined ? (t.pnl_r >= 0 ? '#00d4a0' : '#ff4757') : '#6b6b8a' }}>{t.pnl_r !== undefined ? `${t.pnl_r >= 0 ? '+' : ''}${t.pnl_r.toFixed(1)}R` : '—'}</td>
-                <td style={{ padding: '12px 14px' }}><Badge variant="blue">{t.session}</Badge></td>
-                <td style={{ padding: '12px 14px' }}><Badge variant={t.status === 'OPEN' ? 'green' : t.status === 'CLOSED' ? 'neutral' : 'red'}>{t.status}</Badge></td>
+                <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: t.r_multiple !== undefined ? (t.r_multiple >= 0 ? '#00d4a0' : '#ff4757') : '#6b6b8a' }}>{t.r_multiple !== undefined ? `${t.r_multiple >= 0 ? '+' : ''}${t.r_multiple.toFixed(1)}R` : '—'}</td>
+                <td style={{ padding: '12px 14px' }}><Badge variant="info">{t.session}</Badge></td>
+                <td style={{ padding: '12px 14px' }}><Badge variant={t.status === 'OPEN' ? 'bull' : t.status === 'CLOSED' ? 'neutral' : 'bear'}>{t.status}</Badge></td>
                 <td style={{ padding: '12px 14px', color: '#6b6b8a', fontSize: '12px', whiteSpace: 'nowrap' }}>{new Date(t.entry_time).toLocaleDateString()}</td>
               </tr>
             ))}

@@ -17,10 +17,10 @@ export const api = {
   getMarketData: (symbol: string, timeframe = 'H1') =>
     request<MarketData>(`/market-data/${symbol}?timeframe=${timeframe}`),
 
-  runAnalysis: (symbol: string, timeframe: string, ohlcv_data: unknown[]) =>
+  runAnalysis: (input: { symbol: string; timeframe: string; ohlcv_data: unknown[] }) =>
     request<AnalysisResult>('/analysis/run', {
       method: 'POST',
-      body: JSON.stringify({ symbol, timeframe, ohlcv_data }),
+      body: JSON.stringify(input),
     }),
 
   checkRisk: (input: RiskCheckInput) =>
