@@ -1,47 +1,67 @@
 'use client';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card } from '@/components/ui/Card';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import type { PerformanceStats } from '@/types/trade';
 
-const equityData = [
-  { date: 'Jun 1', balance: 10000 },
-  { date: 'Jun 5', balance: 10184 },
-  { date: 'Jun 8', balance: 10095 },
-  { date: 'Jun 12', balance: 10312 },
-  { date: 'Jun 15', balance: 10189 },
-  { date: 'Jun 18', balance: 10445 },
-  { date: 'Jun 22', balance: 10380 },
-  { date: 'Jun 25', balance: 10520 },
-  { date: 'Jun 29', balance: 10647 },
-];
+interface Props { stats: PerformanceStats; }
 
-export function PerformanceCharts() {
+const chartTheme = {
+  background: 'transparent',
+  grid: '#1e1e2e',
+  text: '#6b6b8a',
+};
+
+export function PerformanceCharts({ stats }: Props) {
   return (
-    <Card className="p-5">
-      <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">Equity Curve</h3>
-      <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={equityData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-          <XAxis dataKey="date" tick={{ fill: '#6b6b8a', fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis
-            tick={{ fill: '#6b6b8a', fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v) => `$${v.toLocaleString()}`}
-            domain={['dataMin - 200', 'dataMax + 200']}
-          />
-          <Tooltip
-            contentStyle={{ background: '#12121a', border: '1px solid #1e1e2e', borderRadius: 8 }}
-            labelStyle={{ color: '#6b6b8a' }}
-            formatter={(v: number) => [`$${v.toLocaleString()}`, 'Balance']}
-          />
-          <Line
-            type="monotone" dataKey="balance"
-            stroke="#00d4a0" strokeWidth={2}
-            dot={{ fill: '#00d4a0', r: 3 }}
-            activeDot={{ r: 5 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </Card>
+    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+      <Card>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0', marginBottom: '20px' }}>Equity Curve</h3>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={stats.equity_curve}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+            <XAxis dataKey="date" tick={{ fill: chartTheme.text, fontSize: 11 }} tickFormatter={v => v.slice(5)} />
+            <YAxis tick={{ fill: chartTheme.text, fontSize: 11 }} tickFormatter={v => `$${v.toLocaleString()}`} />
+            <Tooltip
+              contentStyle={{ background: '#12121a', border: '1px solid #1e1e2e', borderRadius: '8px', color: '#e8e8f0' }}
+              formatter={(v: number) => [`$${v.toLocaleString()}`, 'Equity']}
+            />
+            <Line type="monotone" dataKey="equity" stroke="#4a9eff" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0', marginBottom: '20px' }}>Monthly Returns</h3>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={stats.monthly_returns}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+            <XAxis dataKey="month" tick={{ fill: chartTheme.text, fontSize: 11 }} />
+            <YAxis tick={{ fill: chartTheme.text, fontSize: 11 }} tickFormatter={v => `${v}%`} />
+            <Tooltip
+              contentStyle={{ background: '#12121a', border: '1px solid #1e1e2e', borderRadius: '8px', color: '#e8e8f0' }}
+              formatter={(v: number) => [`${v}%`, 'Return']}
+            />
+            <Bar dataKey="return" fill="#4a9eff" radius={[4, 4, 0, 0]}
+              label={false}
+              style={{ fill: '#4a9eff' }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card style={{ gridColumn: 'span 2' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e8e8f0', marginBottom: '20px' }}>Win/Loss Distribution</h3>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={stats.win_loss_distribution}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+            <XAxis dataKey="label" tick={{ fill: chartTheme.text, fontSize: 11 }} />
+            <YAxis tick={{ fill: chartTheme.text, fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: '#12121a', border: '1px solid #1e1e2e', borderRadius: '8px', color: '#e8e8f0' }} />
+            <Bar dataKey="wins" fill="#00d4a0" radius={[4, 4, 0, 0]} name="Wins" />
+            <Bar dataKey="losses" fill="#ff4757" radius={[4, 4, 0, 0]} name="Losses" />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
   );
 }
