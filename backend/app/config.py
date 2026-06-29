@@ -22,9 +22,14 @@ class Settings(BaseSettings):
     # Economic calendar — FCS API (https://fcsapi.com, free tier)
     FCS_API_KEY: str = ""
 
-    # Broker
+    # Broker (legacy)
     BROKER_API_KEY: str = ""
     BROKER_API_SECRET: str = ""
+
+    # OANDA Practice Account (https://www.oanda.com)
+    OANDA_API_KEY: str = ""
+    OANDA_ACCOUNT_ID: str = ""
+    OANDA_PRACTICE: str = "true"
 
     # App
     ENVIRONMENT: str = "development"
