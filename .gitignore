@@ -1,39 +1,35 @@
-# Claude Code worktrees
-.claude/
-
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
 *.egg-info/
-dist/
-build/
 .venv/
 venv/
-.env
+.pytest_cache/
 
-# Node
+# Agent state — the SQLite database and its journals
+backend/data/
+*.db
+*.db-journal
+
+# Secrets
+.env
+*.env.local
+
+# Node / Next
 node_modules/
 .next/
 out/
 .npm
 
-# Environment
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-
-# OS
+# OS / IDE
 .DS_Store
 Thumbs.db
-
-# IDE
 .idea/
 .vscode/
 *.swp
 
-# Docker
-*.log
+# Claude Code worktrees
+.claude/
+
+# Next build info
+*.tsbuildinfo

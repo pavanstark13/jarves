@@ -5,15 +5,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: '#0a0a0f',
-        card: '#12121a',
-        border: '#1e1e2e',
-        green: { DEFAULT: '#00d4a0', dark: '#009e77' },
-        red: { DEFAULT: '#ff4757', dark: '#cc3344' },
-        blue: { DEFAULT: '#4a9eff', dark: '#2277cc' },
-        text: { DEFAULT: '#e8e8f0', muted: '#6b6b8a' },
+        ink: { DEFAULT: '#0b0c10', raised: '#131519', line: '#23262e' },
+        gold: { DEFAULT: '#e3b23c', bright: '#f5cd6a', dim: '#7a6224' },
+        up: '#3ecf8e',
+        down: '#ff5c5c',
+        muted: '#8a8f9c',
+        paper: '#e9ebf0',
       },
-      fontFamily: { mono: ['JetBrains Mono', 'Fira Code', 'monospace'] },
+      fontFamily: {
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+      },
     },
   },
   plugins: [],

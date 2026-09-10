@@ -1,109 +1,77 @@
-import { AnalysisResult, RiskCheckResult, RiskCheckInput } from '@/types/analysis';
-import { MarketData } from '@/types/market';
-import { Trade, PerformanceStats } from '@/types/trade';
+import type {
+  AgentConfig,
+  AgentEvent,
+  AgentStatus,
+  BacktestRun,
+  CalendarView,
+  CycleReport,
+  DecisionRow,
+  Performance,
+  PositionView,
+  Quote,
+  Trade,
+} from '@/types';
 
 const BASE = '/api';
 
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const response = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
     ...init,
   });
-  if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
-  return res.json();
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      detail = body.detail ?? detail;
+    } catch {
+      /* keep the status text */
+    }
+    throw new ApiError(detail, response.status);
+  }
+  return response.json() as Promise<T>;
 }
 
 export const api = {
-  getMarketData: (symbol: string, timeframe = 'H1') =>
-    request<MarketData>(`/market-data/${symbol}?timeframe=${timeframe}`),
+  health: () => request<{ status: string; mode: string; broker_configured: boolean }>('/health'),
 
-  runAnalysis: (input: { symbol: string; timeframe: string; ohlcv_data: unknown[] }) =>
-    request<AnalysisResult>('/analysis/run', {
+  // Agent
+  status: () => request<AgentStatus>('/agent/status'),
+  config: () => request<AgentConfig>('/agent/config'),
+  start: () => request<{ enabled: boolean; message: string }>('/agent/start', { method: 'POST' }),
+  stop: () => request<{ enabled: boolean; message: string }>('/agent/stop', { method: 'POST' }),
+  evaluate: () => request<CycleReport>('/agent/cycle?force=true', { method: 'POST' }),
+  flatten: (reason = 'closed from the console') =>
+    request<{ closed: number; actions: string[] }>('/agent/flatten', {
       method: 'POST',
-      body: JSON.stringify(input),
+      body: JSON.stringify({ reason }),
     }),
+  resetHalt: () => request<{ halted: boolean; message: string }>('/agent/reset-halt', { method: 'POST' }),
+  decisions: (limit = 40) => request<DecisionRow[]>(`/agent/decisions?limit=${limit}`),
+  events: (limit = 40) => request<AgentEvent[]>(`/agent/events?limit=${limit}`),
 
-  checkRisk: (input: RiskCheckInput) =>
-    request<RiskCheckResult>('/risk/check', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+  // Market
+  price: () => request<Quote>('/market/price'),
+  calendar: (hours = 48) => request<CalendarView>(`/market/calendar?hours=${hours}`),
 
-  getTrades: () => request<Trade[]>('/journal/trades'),
-
-  createTrade: (trade: Partial<Trade>) =>
-    request<Trade>('/journal/trades', {
-      method: 'POST',
-      body: JSON.stringify(trade),
-    }),
-
-  getPerformance: () => request<PerformanceStats>('/analytics/performance'),
+  // Trades
+  trades: (limit = 100) => request<Trade[]>(`/trades?limit=${limit}`),
+  openPositions: () => request<PositionView[]>('/trades/open'),
+  performance: () => request<Performance>('/trades/performance'),
 
   // Backtest
-  runBacktest: (params: { symbol: string; start_date: string; end_date: string; initial_balance?: number }) =>
+  runBacktest: (body: { days: number; starting_balance: number; assumed_spread: number }) =>
     request<{ run_id: string; status: string }>('/backtest/run', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify(body),
     }),
-  getBacktestRuns: () => request<BacktestRun[]>('/backtest/runs'),
-  getBacktestRun:  (id: string) => request<BacktestRunDetail>(`/backtest/runs/${id}`),
-  getBacktestTrades: (id: string, page = 1, result?: string) =>
-    request<{ total: number; page: number; trades: BacktestTradeItem[] }>(
-      `/backtest/runs/${id}/trades?page=${page}${result ? `&result=${result}` : ''}`
-    ),
-
-  getAnalyticsSummary: () => request<Record<string, unknown>>('/analytics/summary'),
-
-  // Auto Trade
-  getScannerStatus: () => request<ScannerStatus>('/auto-trade/status'),
-  toggleScanner: (enabled: boolean) =>
-    request<{ enabled: boolean; message: string }>('/auto-trade/toggle', {
-      method: 'POST',
-      body: JSON.stringify({ enabled }),
-    }),
-  triggerScan: () => request<{ signals_fired: number; signals: unknown[] }>('/auto-trade/scan', { method: 'POST' }),
-  getOpenPositions: () => request<OandaPosition[]>('/auto-trade/positions'),
-  getOandaAccount: () => request<OandaAccount>('/auto-trade/account'),
-  closePosition: (symbol: string) =>
-    request<unknown>(`/auto-trade/close/${symbol}`, { method: 'POST' }),
+  backtestRun: (id: string) => request<BacktestRun>(`/backtest/runs/${id}`),
+  backtestRuns: () => request<BacktestRun[]>('/backtest/runs'),
 };
-
-// Types for backtest and auto-trade
-export interface BacktestRun {
-  run_id: string; symbol: string; status: string; started_at: string;
-  completed_at?: string; total_trades?: number; win_rate?: number;
-  profit_factor?: number; total_pnl?: number; final_balance?: number; error?: string;
-}
-
-export interface BacktestRunDetail extends BacktestRun {
-  initial_balance: number;
-  wins: number; losses: number; max_drawdown_pct: number; expectancy_r: number;
-  equity_curve: { timestamp: string; equity: number }[];
-  per_symbol?: Record<string, BacktestRun>;
-}
-
-export interface BacktestTradeItem {
-  symbol: string; direction: string; entry_time: string; exit_time: string;
-  entry_price: number; exit_price: number; stop_loss: number; take_profit: number;
-  result: string; r_multiple: number; pnl_usd: number; session: string; exit_reason: string;
-}
-
-export interface ScannerSignalItem {
-  symbol: string; direction: string; entry_price: number; stop_loss: number;
-  take_profit: number; risk_reward: number; session: string; fired_at: string;
-  placement_status: string; placement_error: string; oanda_order_id: string; reasoning: string;
-}
-
-export interface ScannerStatus {
-  enabled: boolean; last_scan_at: string; next_scan_at: string;
-  signals_today: number; open_symbols: string[]; signals_feed: ScannerSignalItem[];
-}
-
-export interface OandaPosition {
-  symbol: string; direction: string; units: number; avg_price: number; unrealized: number;
-}
-
-export interface OandaAccount {
-  id: string; balance: number; nav: number; unrealized: number;
-  margin_used: number; currency: string; mode: string;
-}
