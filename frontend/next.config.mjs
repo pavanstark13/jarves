@@ -1,15 +1,9 @@
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8000';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      // The browser calls /api/... and Next proxies to the agent's API, which
-      // serves its routes at the root (/agent, /market, /trades, /backtest).
-      { source: '/api/:path*', destination: `${BACKEND_URL}/:path*` },
-    ];
-  },
+  // Calls to /api/* are handled by the route handler in
+  // src/app/api/[...path]/route.ts, which proxies to BACKEND_URL and attaches
+  // the API token server-side. A rewrite cannot do that, so there isn't one.
 };
 
 export default nextConfig;

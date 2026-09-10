@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     APP_NAME: str = "Jarves Gold Agent"
     ENVIRONMENT: str = "development"
 
+    # ── API access ────────────────────────────────────────────────────────────
+    # Shared secret required by every route except /health. Leave empty only
+    # while the backend is reachable from this machine alone; live mode
+    # refuses to start without it.
+    API_TOKEN: str = ""
+    # Browser origins allowed to call the API directly. The console normally
+    # proxies server-side and needs none of these. "*" allows any site — only
+    # sane when API_TOKEN is set, and never with credentials.
+    CORS_ORIGINS: str = "http://localhost:3000"
+
     # ── Storage ───────────────────────────────────────────────────────────────
     # SQLite by default so the agent runs standalone with no extra services.
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/jarves.db"

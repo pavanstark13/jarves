@@ -111,6 +111,7 @@ uvicorn app.main:app --reload           # http://localhost:8000/docs
 
 cd ../frontend
 npm install
+cp .env.example .env.local              # BACKEND_URL=http://localhost:8000
 npm run dev                             # http://localhost:3000
 ```
 
@@ -182,6 +183,51 @@ Run it against a **MultiBank demo account** first. The adapter is covered by
 tests against a simulated terminal, but no test can substitute for watching it
 place one real order on your own server.
 
+## Running the console
+
+The console never talks to the agent from the browser. It calls its own
+`/api/*` route, which proxies to `BACKEND_URL` server-side and attaches the API
+token there, so the token never reaches the browser.
+
+**Locally, next to the backend** — the normal setup, and the only one that
+works when the backend is on your own machine (which MT5 requires):
+
+```bash
+cd frontend
+cp .env.example .env.local     # BACKEND_URL=http://localhost:8000
+npm run dev                    # http://localhost:3000
+```
+
+**Deployed (Vercel and similar)** — only works if the agent's API has a
+**public HTTPS address**. A deployed console cannot reach `localhost` or a
+private IP on your machine; Vercel refuses to proxy there and returns
+`DNS_HOSTNAME_RESOLVED_PRIVATE` on every page. To do this you must:
+
+1. Give the backend a public address — a tunnel (Cloudflare Tunnel, ngrok) in
+   front of your machine, or a host it runs on.
+2. Set `API_TOKEN` in `backend/.env` to a long random value. **Do this first.**
+   The API can start trading and close positions; exposing it without a token
+   lets anyone who finds the URL do the same.
+3. Set both `BACKEND_URL` (the public HTTPS address) and `API_TOKEN` (the same
+   value) as environment variables on the deployment, then redeploy.
+
+If it is misconfigured the console now says so in words rather than failing
+with a platform error page.
+
+## Security
+
+The API opens and closes real positions, so treat it as a credential.
+
+- **`API_TOKEN`** guards every endpoint except `/health`. Without it the API is
+  open, which is only acceptable while the backend is reachable from your
+  machine alone. **Live mode refuses to start with no token set.**
+- **`CORS_ORIGINS`** lists the browser origins allowed to call the API
+  directly; it defaults to localhost only. The console does not rely on it.
+- The token is held server-side by the console's proxy and is never sent to the
+  browser or embedded in the page.
+- Anything that exposes the backend — a tunnel, a VPS, port forwarding — needs
+  the token set before it is reachable, not after.
+
 ## The console
 
 | Page | What it shows |
@@ -193,8 +239,11 @@ place one real order on your own server.
 
 ## API
 
+All routes except `/health` require the API token when `API_TOKEN` is set,
+sent as `Authorization: Bearer <token>` or `X-API-Token`.
+
 ```
-GET  /health                     service, mode, whether the broker is configured
+GET  /health                     service, mode, broker and auth status (open)
 GET  /agent/status               everything: account, quote, day book, position, last cycle
 POST /agent/start | /agent/stop  begin or end trading
 POST /agent/cycle?force=true     evaluate now without opening anything
@@ -221,16 +270,16 @@ results are worse: real spreads move, fills slip, and news gaps through stops.
 ## Tests
 
 ```bash
-cd backend && python -m pytest        # 127 tests, no network, no terminal
+cd backend && python -m pytest        # 143 tests, no network, no terminal
 cd frontend && npm run build          # type-checks and builds
 ```
 
 The suite covers the indicator maths, every gate the strategy can fail, the
 sizing arithmetic and each risk limit, the stop-management invariants, the
 simulator's pessimistic fills, the agent loop end to end against a scripted
-market, the HTTP surface, and the MT5 adapter against a fake terminal —
-lot conversion, server-time correction, filling modes, stop distances and
-magic-number isolation.
+market, the HTTP surface, access control on every route that can move money,
+and the MT5 adapter against a fake terminal — lot conversion, server-time
+correction, filling modes, stop distances and magic-number isolation.
 
 The MT5 tests use a stand-in for the MetaTrader5 package, so they run on any
 platform. They prove the conversions, not that your broker behaves as
