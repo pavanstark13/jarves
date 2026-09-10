@@ -25,11 +25,36 @@ class Settings(BaseSettings):
     # SQLite by default so the agent runs standalone with no extra services.
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/jarves.db"
 
-    # ── Broker: OANDA v20 (only supported venue) ──────────────────────────────
+    # ── Broker selection ──────────────────────────────────────────────────────
+    # "oanda" — OANDA v20 REST, works anywhere.
+    # "mt5"   — MetaTrader 5 terminal (MultiBank and other MT5 brokers).
+    #           The backend must run on Windows, on the same machine as the
+    #           terminal: MetaQuotes publishes no Linux build of its package.
+    BROKER: str = "oanda"
+
+    # ── Broker: OANDA v20 ─────────────────────────────────────────────────────
     OANDA_API_KEY: str = ""
     OANDA_ACCOUNT_ID: str = ""
     # "practice" (fxpractice, demo money) or "live" (real money).
     OANDA_ENVIRONMENT: str = "practice"
+
+    # ── Broker: MetaTrader 5 ──────────────────────────────────────────────────
+    # Credentials as shown in the terminal. For MultiBank the server name looks
+    # like "MultiBankGroup-Live" or "MEXAtlantic-Demo" — copy it exactly.
+    MT5_LOGIN: int = 0
+    MT5_PASSWORD: str = ""
+    MT5_SERVER: str = ""
+    # Path to terminal64.exe. Leave empty to attach to a terminal already running.
+    MT5_TERMINAL_PATH: str = ""
+    # Pin the broker's gold symbol (e.g. "XAUUSD.m"). Empty discovers it.
+    MT5_SYMBOL: str = ""
+    # Tags this agent's orders so manual trades in the same account are ignored.
+    MT5_MAGIC: int = 8_829_001
+    # Maximum slippage tolerated on a market order, in points.
+    MT5_SLIPPAGE_POINTS: int = 20
+    # Hours the broker's clock runs ahead of UTC (MultiBank is typically +2/+3).
+    # Leave unset to measure it from a live tick; pin it if the detection warns.
+    MT5_SERVER_UTC_OFFSET_HOURS: float | None = None
 
     # ── Agent execution mode ──────────────────────────────────────────────────
     # "paper" — the full pipeline runs and decisions are recorded, but no order

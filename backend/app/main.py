@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
 
     # Read the real contract details for gold from the broker, so price
     # rounding and minimum size follow the venue rather than our defaults.
+    # For MT5 this also opens the connection to the terminal.
     if trading_agent.market and trading_agent.market.configured:
         try:
             spec = await trading_agent.market.load_instrument_spec()
@@ -49,8 +50,9 @@ async def lifespan(app: FastAPI):
             logger.warning("Could not read the gold contract spec: %s", exc)
     else:
         logger.warning(
-            "OANDA credentials are not configured — the agent can start but has "
-            "no market data. Set OANDA_API_KEY and OANDA_ACCOUNT_ID."
+            "No broker credentials configured for BROKER=%s — the agent can "
+            "start but has no market data. See backend/.env.example.",
+            settings.BROKER,
         )
 
     # Restore simulated state so a restart does not forget open paper trades.
@@ -71,8 +73,13 @@ async def lifespan(app: FastAPI):
         "LIVE" if settings.is_live else "paper",
     )
     yield
+
     stop_scheduler()
     await trading_agent.stop("API shutting down")
+    # MT5 holds a terminal connection that should be released cleanly.
+    shutdown = getattr(trading_agent.market, "shutdown", None)
+    if shutdown is not None:
+        await shutdown()
 
 
 app = FastAPI(

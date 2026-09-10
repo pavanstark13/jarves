@@ -65,7 +65,7 @@ export default function ConsolePage() {
         <div>
           <h1 className="text-xl font-semibold">Gold Agent</h1>
           <p className="text-sm text-muted">
-            XAU/USD · {status?.venue ?? '—'} ·{' '}
+            XAU/USD · {status?.broker ?? '—'} · {status?.venue ?? '—'} ·{' '}
             {status ? `${status.cycles} cycles, every ${status.scan_interval_seconds}s` : '—'}
           </p>
         </div>
@@ -87,9 +87,10 @@ export default function ConsolePage() {
       )}
       {status && !status.broker_configured && (
         <div className="rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
-          OANDA credentials are not configured, so there is no market data. Set
-          OANDA_API_KEY and OANDA_ACCOUNT_ID in backend/.env — a free practice
-          account is enough, including for paper mode.
+          {status.broker === 'mt5'
+            ? 'MetaTrader 5 credentials are not configured, so there is no market data. Set MT5_LOGIN, MT5_PASSWORD and MT5_SERVER in backend/.env, and make sure the terminal is running on this machine.'
+            : 'OANDA credentials are not configured, so there is no market data. Set OANDA_API_KEY and OANDA_ACCOUNT_ID in backend/.env — a free practice account is enough.'}
+          {' '}Paper mode still needs them: it simulates the money, not the market.
         </div>
       )}
       {status?.halted && (

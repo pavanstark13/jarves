@@ -104,6 +104,7 @@ export interface AgentStatus {
   enabled: boolean;
   mode: 'paper' | 'live';
   venue: string;
+  broker: string;
   broker_configured: boolean;
   started_at: string | null;
   cycles: number;

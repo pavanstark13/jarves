@@ -8,7 +8,8 @@ from app.core.agent import get_agent
 from app.core.broker.base import BrokerError
 from app.core.market import session as session_clock
 from app.core.market.calendar import EconomicCalendar
-from app.instrument import DISPLAY_NAME, OANDA_INSTRUMENT, SYMBOL
+from app.config import settings
+from app.instrument import DISPLAY_NAME, SYMBOL
 
 router = APIRouter()
 _calendar = EconomicCalendar()
@@ -16,14 +17,17 @@ _calendar = EconomicCalendar()
 
 @router.get("/instrument")
 async def instrument():
-    agent = get_agent()
+    """The gold contract as the configured venue actually defines it."""
+    spec = getattr(get_agent().market, "spec", None)
     return {
         "symbol": SYMBOL,
         "name": DISPLAY_NAME,
-        "broker_instrument": OANDA_INSTRUMENT,
-        "price_precision": agent.broker.spec.price_precision
-        if hasattr(agent.broker, "spec")
-        else 3,
+        "broker": settings.BROKER,
+        # What this broker calls gold: XAU_USD on OANDA, XAUUSD(.m) on MT5.
+        "broker_instrument": getattr(spec, "symbol", SYMBOL),
+        "price_precision": getattr(spec, "price_precision", 3),
+        "contract_size": getattr(spec, "contract_size", 1.0),
+        "min_trade_units": getattr(spec, "min_trade_units", 1.0),
         "unit": "troy ounce",
     }
 

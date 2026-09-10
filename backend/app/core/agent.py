@@ -26,7 +26,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from app.config import settings
-from app.core.broker.base import Account, Broker, BrokerError, Position, Quote
+from app.core.broker.base import Account, Broker, BrokerError, MarketClient, Position, Quote
+from app.core.broker.mt5 import Mt5Broker
 from app.core.broker.oanda import OandaBroker
 from app.core.broker.paper import PaperBroker
 from app.core.management import improved_stop, time_stop_hit
@@ -68,14 +69,26 @@ class CycleReport:
         }
 
 
-def build_broker(clock: Callable[[], dt.datetime] | None = None) -> tuple[Broker, OandaBroker]:
+def build_market_client() -> MarketClient:
+    """The configured venue: OANDA's REST API, or a MetaTrader 5 terminal."""
+    choice = settings.BROKER.strip().lower()
+    if choice == "mt5":
+        return Mt5Broker()
+    if choice == "oanda":
+        return OandaBroker()
+    raise ValueError(f"Unknown BROKER '{settings.BROKER}'. Use 'oanda' or 'mt5'.")
+
+
+def build_broker(
+    clock: Callable[[], dt.datetime] | None = None,
+) -> tuple[Broker, MarketClient]:
     """
     Returns (execution broker, market-data client).
 
-    Both modes read the market through OANDA. Only live mode sends orders
-    there; paper mode fills them against the same quotes internally.
+    Both modes read the market through the configured venue. Only live mode
+    sends orders there; paper mode fills them against the same real quotes.
     """
-    market = OandaBroker()
+    market = build_market_client()
     if settings.is_live:
         return market, market
     return (
@@ -88,7 +101,7 @@ class TradingAgent:
     def __init__(
         self,
         broker: Broker | None = None,
-        market: OandaBroker | None = None,
+        market: MarketClient | None = None,
         strategy: GoldStrategy | None = None,
         risk: RiskManager | None = None,
         calendar: EconomicCalendar | None = None,
@@ -334,7 +347,7 @@ class TradingAgent:
         self, trade_id: str, record: dict[str, Any], quote: Quote
     ) -> tuple[float, float, str, dt.datetime]:
         """Ask the broker how a vanished trade actually ended."""
-        if isinstance(self.broker, OandaBroker):
+        if not isinstance(self.broker, PaperBroker) and hasattr(self.broker, "get_closed_trades"):
             try:
                 for closed in await self.broker.get_closed_trades(count=50):
                     if closed["trade_id"] == trade_id:
@@ -528,6 +541,7 @@ class TradingAgent:
             "enabled": self.enabled,
             "mode": self.mode,
             "venue": getattr(self.broker, "name", "unknown"),
+            "broker": settings.BROKER,
             "broker_configured": self.market.configured if self.market else False,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "cycles": self.cycles,

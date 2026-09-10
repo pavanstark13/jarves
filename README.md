@@ -9,9 +9,16 @@ of them satisfied — in which case it takes the trade — or it stands aside an
 records which measurement stopped it.
 
 ```
-backend/   FastAPI service: the agent loop, strategy, risk control, broker, storage
+backend/   FastAPI service: the agent loop, strategy, risk control, brokers, storage
 frontend/  Next.js console: what the agent sees, what it decided, and the controls
 ```
+
+Two brokers are supported. Set `BROKER` to pick one:
+
+| `BROKER` | Venue | Runs on |
+| --- | --- | --- |
+| `oanda` | OANDA v20 REST | anywhere, including Docker on Linux |
+| `mt5` | MetaTrader 5 terminal — MultiBank and other MT5 brokers | **Windows only**, beside the terminal |
 
 ## How it decides
 
@@ -84,12 +91,12 @@ EXECUTION_CONFIRMED=true
 so no single stray environment variable can start trading real money. Paper
 mode still needs OANDA credentials — it simulates the money, not the market.
 
-## Running it
+## Running it with OANDA
 
 ```bash
 # 1. Credentials — a free OANDA practice account is enough
 cp backend/.env.example backend/.env
-#    fill in OANDA_API_KEY and OANDA_ACCOUNT_ID
+#    set BROKER=oanda and fill in OANDA_API_KEY and OANDA_ACCOUNT_ID
 
 # 2. Everything at once
 docker compose up --build
@@ -109,6 +116,71 @@ npm run dev                             # http://localhost:3000
 
 The agent boots stopped. Press **Start agent** in the console, or set
 `AGENT_AUTOSTART=true`.
+
+## Running it with MetaTrader 5 (MultiBank)
+
+MetaQuotes publishes its Python package for **Windows only** — there is no
+Linux or macOS build — and it drives a terminal running on the same machine.
+So with `BROKER=mt5` the backend has to run on Windows next to MetaTrader 5.
+Docker Compose is therefore an OANDA-only path; for MT5, run the backend
+directly. Anything with a persistent desktop works, including the Windows VPS
+most brokers offer.
+
+```powershell
+# On the Windows machine, with MetaTrader 5 installed and logged in:
+cd backend
+pip install -r requirements.txt -r requirements-mt5.txt
+copy .env.example .env
+```
+
+Then set in `backend\.env`:
+
+```
+BROKER=mt5
+MT5_LOGIN=<your MultiBank account number>
+MT5_PASSWORD=<your password>
+MT5_SERVER=<exactly as shown in the terminal, e.g. MultiBankGroup-Live>
+```
+
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The frontend can stay wherever you like — point its `BACKEND_URL` at the
+Windows machine.
+
+**What the adapter handles for you**
+
+- **Lots versus ounces.** The agent sizes in troy ounces; MT5 wants lots. The
+  contract size, volume step, minimum and maximum are read from your symbol and
+  the conversion always rounds *down*, so a rounded size never risks more than
+  intended.
+- **The symbol name.** MultiBank and others suffix their symbols. The terminal's
+  Market Watch is searched for gold; pin `MT5_SYMBOL` if you want a specific one.
+- **Server time.** MT5 stamps candles in the *broker's* timezone but encodes them
+  as if they were UTC. MultiBank servers run UTC+2/+3, so taking them at face
+  value would shift every London and New York session window by hours. The
+  offset is measured from a live tick and removed.
+- **Filling modes.** Sending FOK to a symbol that only accepts IOC is a common
+  cause of rejected MT5 orders. The mode is read from the symbol and matched.
+- **Minimum stop distance.** Servers reject stops placed too close to price;
+  that is checked before the order is sent, and reported in plain words.
+- **Your manual trades.** Every order carries `MT5_MAGIC`. Positions without it
+  are never read, modified or closed — trade by hand in the same account safely.
+
+**Check these two before going anywhere near live money**
+
+1. **The server offset.** Start the backend and read the log line
+   `MT5 server clock detected at UTC+3.0h`. If it instead warns that the market
+   looked closed, set `MT5_SERVER_UTC_OFFSET_HOURS` yourself. A wrong value
+   silently trades the wrong hours.
+2. **The symbol and contract.** The log prints
+   `XAUUSD contract: 1 lot = 100 oz, step 0.01 lots (1 oz), 2 digits`. Confirm
+   that matches your MultiBank contract specification.
+
+Run it against a **MultiBank demo account** first. The adapter is covered by
+tests against a simulated terminal, but no test can substitute for watching it
+place one real order on your own server.
 
 ## The console
 
@@ -149,14 +221,20 @@ results are worse: real spreads move, fills slip, and news gaps through stops.
 ## Tests
 
 ```bash
-cd backend && python -m pytest        # 97 tests, no network
+cd backend && python -m pytest        # 127 tests, no network, no terminal
 cd frontend && npm run build          # type-checks and builds
 ```
 
 The suite covers the indicator maths, every gate the strategy can fail, the
 sizing arithmetic and each risk limit, the stop-management invariants, the
 simulator's pessimistic fills, the agent loop end to end against a scripted
-market, and the HTTP surface.
+market, the HTTP surface, and the MT5 adapter against a fake terminal —
+lot conversion, server-time correction, filling modes, stop distances and
+magic-number isolation.
+
+The MT5 tests use a stand-in for the MetaTrader5 package, so they run on any
+platform. They prove the conversions, not that your broker behaves as
+expected; only a real terminal can show that.
 
 ## Risk
 

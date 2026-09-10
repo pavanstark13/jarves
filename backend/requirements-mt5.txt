@@ -1,0 +1,10 @@
+# MetaTrader 5 support (MultiBank and other MT5 brokers).
+#
+# Install this ON TOP of requirements.txt, and only on Windows:
+#     pip install -r requirements.txt -r requirements-mt5.txt
+#
+# MetaQuotes publishes this package for Windows only — there is no Linux or
+# macOS build — and it drives a MetaTrader 5 terminal running on the same
+# machine. Version is left as a floor rather than pinned because the package
+# tracks the terminal build it talks to.
+MetaTrader5>=5.0.45

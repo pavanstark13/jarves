@@ -143,6 +143,24 @@ class OrderResult:
 
 
 @runtime_checkable
+class MarketClient(Protocol):
+    """
+    A real venue: everything a Broker does, plus the things only a live
+    connection can answer — whether it is configured, what the contract
+    actually looks like, and how a trade ended.
+    """
+
+    name: str
+    spec: Any
+
+    @property
+    def configured(self) -> bool: ...
+
+    async def load_instrument_spec(self) -> Any: ...
+    async def get_closed_trades(self, count: int = 50) -> list[dict[str, Any]]: ...
+
+
+@runtime_checkable
 class Broker(Protocol):
     """Minimum surface the agent needs from a venue."""
 
